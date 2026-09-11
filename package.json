@@ -1,0 +1,17 @@
+{
+  "name": "@yonela-johannes/waka-readme-stats",
+  "version": "1.0.0",
+  "description": "Generate WakaTime statistics for GitHub README files",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ncc build src/index.js --minify"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.3"
+  }
+}

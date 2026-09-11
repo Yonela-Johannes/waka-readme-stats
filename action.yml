@@ -1,0 +1,64 @@
+name: Yonela WakaTime Stats
+description: Generate WakaTime statistics and update a GitHub README
+author: Yonela Johannes
+
+branding:
+  icon: activity
+  color: blue
+
+inputs:
+  wakatime_api_key:
+    description: WakaTime API key
+    required: true
+
+  github_token:
+    description: GitHub token used to update the README
+    required: true
+
+  github_repository:
+    description: Repository containing the README
+    required: true
+
+  readme_path:
+    description: Path to the README file
+    required: false
+    default: README.md
+
+  stats_range:
+    description: WakaTime statistics range
+    required: false
+    default: last_7_days
+
+  show_code_time:
+    description: Show total coding time
+    required: false
+    default: "true"
+
+  show_ai_time:
+    description: Show AI coding time
+    required: false
+    default: "true"
+
+  show_languages:
+    description: Show programming languages
+    required: false
+    default: "true"
+
+  show_editors:
+    description: Show editors
+    required: false
+    default: "true"
+
+  show_os:
+    description: Show operating systems
+    required: false
+    default: "true"
+
+  show_projects:
+    description: Show projects
+    required: false
+    default: "false"
+
+runs:
+  using: node20
+  main: dist/index.js
