@@ -1,64 +1,25 @@
-name: Yonela WakaTime Stats
-description: Generate WakaTime statistics and update a GitHub README
-author: Yonela Johannes
+name: Update WakaTime Stats
 
-branding:
-  icon: activity
-  color: blue
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
 
-inputs:
-  wakatime_api_key:
-    description: WakaTime API key
-    required: true
+permissions:
+  contents: write
 
-  github_token:
-    description: GitHub token used to update the README
-    required: true
+jobs:
+  update:
+    runs-on: ubuntu-latest
 
-  github_repository:
-    description: Repository containing the README
-    required: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  readme_path:
-    description: Path to the README file
-    required: false
-    default: README.md
-
-  stats_range:
-    description: WakaTime statistics range
-    required: false
-    default: last_7_days
-
-  show_code_time:
-    description: Show total coding time
-    required: false
-    default: "true"
-
-  show_ai_time:
-    description: Show AI coding time
-    required: false
-    default: "true"
-
-  show_languages:
-    description: Show programming languages
-    required: false
-    default: "true"
-
-  show_editors:
-    description: Show editors
-    required: false
-    default: "true"
-
-  show_os:
-    description: Show operating systems
-    required: false
-    default: "true"
-
-  show_projects:
-    description: Show projects
-    required: false
-    default: "false"
-
-runs:
-  using: node20
-  main: dist/index.js
+      - name: Generate WakaTime Stats
+        uses: yonela-johannes/waka-readme-stats@main
+        with:
+          wakatime_api_key: ${{ secrets.WAKATIME_API_KEY }}
+          github_token: ${{ secrets.GH_TOKEN }}
+          github_repository: ${{ github.repository }}
+          readme_path: README.md
