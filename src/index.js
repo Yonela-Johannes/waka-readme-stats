@@ -100,6 +100,104 @@ async function run() {
             );
         }
 
+        /*
+         * Diagnostics
+         *
+         * These logs intentionally expose only keys/counts.
+         * No API key or raw WakaTime response is printed.
+         */
+        core.info(
+            `WakaTime stats keys: ${
+                Object.keys(stats).join(", ")
+            }`,
+        );
+
+        core.info(
+            `Languages: ${
+                Array.isArray(stats.languages)
+                    ? stats.languages.length
+                    : 0
+            }`,
+        );
+
+        core.info(
+            `Editors: ${
+                Array.isArray(stats.editors)
+                    ? stats.editors.length
+                    : 0
+            }`,
+        );
+
+        core.info(
+            `Operating systems: ${
+                Array.isArray(stats.operating_systems)
+                    ? stats.operating_systems.length
+                    : 0
+            }`,
+        );
+
+        core.info(
+            `Projects: ${
+                Array.isArray(stats.projects)
+                    ? stats.projects.length
+                    : 0
+            }`,
+        );
+
+        core.info(
+            `AI coding data: ${
+                stats.ai_coding
+                    ? "available"
+                    : "not available"
+            }`,
+        );
+
+        core.info(
+            `All-time data keys: ${
+                Object.keys(allTime).join(", ")
+            }`,
+        );
+
+        core.info(
+            `Stats range: ${statsRange}`,
+        );
+
+        core.info(
+            `Code time enabled: ${
+                options.showCodeTime
+            }`,
+        );
+
+        core.info(
+            `AI time enabled: ${
+                options.showAiTime
+            }`,
+        );
+
+        core.info(
+            `Languages enabled: ${
+                options.showLanguages
+            }`,
+        );
+
+        core.info(
+            `Editors enabled: ${
+                options.showEditors
+            }`,
+        );
+
+        core.info(
+            `Operating systems enabled: ${
+                options.showOs
+            }`,
+        );
+
+        core.info(
+            `Projects enabled: ${
+                options.showProjects
+            }`,
+        );
+
         const wakaSection = generateWakaSection({
             allTime,
             stats,
