@@ -73,7 +73,7 @@ async function run() {
 
             showProjects: getBooleanInput(
                 "show_projects",
-                false,
+                true,
             ),
         };
 
@@ -194,6 +194,18 @@ async function run() {
                 options.showProjects
             }`,
         );
+
+        const hasEnabledSections = Object.values(
+            options,
+        ).some(Boolean);
+
+        if (!hasEnabledSections) {
+            core.info(
+                "All WakaTime sections are disabled; skipping README update.",
+            );
+
+            return;
+        }
 
         const wakaSection = generateWakaSection({
             allTime,
