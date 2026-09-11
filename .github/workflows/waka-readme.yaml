@@ -1,0 +1,33 @@
+name: Update WakaTime Stats
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  waka:
+    name: Update README
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update WakaTime stats
+        uses: yonela-johannes/waka-readme-stats@master
+        with:
+          wakatime_api_key: ${{ secrets.WAKATIME_API_KEY }}
+          github_token: ${{ secrets.GH_TOKEN }}
+          github_repository: yonela-johannes/yonela-johannes
+
+          show_code_time: "true"
+          show_ai_time: "true"
+          show_languages: "true"
+          show_editors: "true"
+          show_os: "true"
+          show_projects: "false"
