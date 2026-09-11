@@ -103,54 +103,98 @@ async function run() {
         /*
          * Diagnostics
          *
-         * These logs intentionally expose only keys/counts.
+         * These logs expose only metadata/counts.
          * No API key or raw WakaTime response is printed.
          */
 
         core.info(
-            `Languages type: ${typeof stats.languages}`,
-        );
-
-        core.info(
-            `Languages is array: ${Array.isArray(stats.languages)}`,
-        );
-
-        core.info(
-            `Editors type: ${typeof stats.editors}`,
-        );
-
-        core.info(
-            `Editors is array: ${Array.isArray(stats.editors)}`,
-        );
-
-        core.info(
-            `Operating systems type: ${typeof stats.operating_systems}`,
-        );
-
-        core.info(
-            `Operating systems is array: ${Array.isArray(stats.operating_systems)
+            `Languages count: ${
+                stats.languages?.length ?? 0
             }`,
         );
 
         core.info(
-            `Projects type: ${typeof stats.projects}`,
-        );
-
-        core.info(
-            `Projects is array: ${Array.isArray(stats.projects)}`,
-        );
-
-        core.info(
-            `AI coding type: ${typeof stats.ai_coding}`,
-        );
-
-        core.info(
-            `AI coding keys: ${stats.ai_coding &&
-                typeof stats.ai_coding === "object"
-                ? Object.keys(stats.ai_coding).join(", ")
-                : "none"
+            `Editors count: ${
+                stats.editors?.length ?? 0
             }`,
         );
+
+        core.info(
+            `Operating systems count: ${
+                stats.operating_systems?.length ?? 0
+            }`,
+        );
+
+        core.info(
+            `Projects count: ${
+                stats.projects?.length ?? 0
+            }`,
+        );
+
+        core.info(
+            `AI additions: ${
+                stats.ai_additions ?? 0
+            }`,
+        );
+
+        core.info(
+            `AI deletions: ${
+                stats.ai_deletions ?? 0
+            }`,
+        );
+
+        core.info(
+            `AI line changes: ${
+                stats.ai_line_changes_total ?? 0
+            }`,
+        );
+
+        core.info(
+            `AI sessions: ${
+                stats.ai_sessions ?? 0
+            }`,
+        );
+
+        core.info(
+            `Stats range: ${statsRange}`,
+        );
+
+        core.info(
+            `Code time enabled: ${
+                options.showCodeTime
+            }`,
+        );
+
+        core.info(
+            `AI time enabled: ${
+                options.showAiTime
+            }`,
+        );
+
+        core.info(
+            `Languages enabled: ${
+                options.showLanguages
+            }`,
+        );
+
+        core.info(
+            `Editors enabled: ${
+                options.showEditors
+            }`,
+        );
+
+        core.info(
+            `Operating systems enabled: ${
+                options.showOs
+            }`,
+        );
+
+        core.info(
+            `Projects enabled: ${
+                options.showProjects
+            }`,
+        );
+
         const wakaSection = generateWakaSection({
             allTime,
             stats,
