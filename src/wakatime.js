@@ -1,7 +1,11 @@
 const API_BASE = "https://wakatime.com/api/v1";
 
 function createAuthHeader(apiKey) {
-    return `Basic ${Buffer.from(apiKey).toString("base64")}`;
+    // WakaTime uses HTTP Basic Auth with the API key as the username.
+    // The trailing colon represents an empty password.
+    const credentials = `${apiKey}:`;
+
+    return `Basic ${Buffer.from(credentials).toString("base64")}`;
 }
 
 export async function wakatimeRequest(apiKey, endpoint) {
@@ -23,7 +27,10 @@ export async function wakatimeRequest(apiKey, endpoint) {
     return response.json();
 }
 
-export async function getStats(apiKey, range = "last_7_days") {
+export async function getStats(
+    apiKey,
+    range = "last_7_days",
+) {
     return wakatimeRequest(
         apiKey,
         `/users/current/stats/${encodeURIComponent(range)}`,

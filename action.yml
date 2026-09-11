@@ -64,7 +64,7 @@ inputs:
   show_projects:
     description: Show projects
     required: false
-    default: "false"
+    default: "true"
 
 runs:
   using: node20

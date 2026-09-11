@@ -6,11 +6,17 @@ function formatPercentage(value) {
 }
 
 function progressBar(percent, length = 24) {
-    const filled = Math.round((Number(percent) / 100) * length);
+    const numericPercent = Number(percent || 0);
+
+    const filled = Math.round(
+        (numericPercent / 100) * length,
+    );
 
     return (
         "█".repeat(Math.max(0, filled)) +
-        "░".repeat(Math.max(0, length - filled))
+        "░".repeat(
+            Math.max(0, length - filled),
+        )
     );
 }
 
@@ -18,25 +24,46 @@ function formatRows(items = [], limit = 8) {
     return items
         .slice(0, limit)
         .map((item) => {
-            const name = String(item.name || "Unknown");
-            const text = String(item.text || "0 secs");
-            const percent = Number(item.percent || 0);
+            const name = String(
+                item?.name || "Unknown",
+            );
 
-            return `${name.padEnd(22)} ${text.padEnd(18)} ${progressBar(
-                percent,
-            )} ${formatPercentage(percent)}%`;
+            const text = String(
+                item?.text || "0 secs",
+            );
+
+            const percent = Number(
+                item?.percent || 0,
+            );
+
+            return [
+                name.padEnd(22),
+                text.padEnd(18),
+                progressBar(percent),
+                `${formatPercentage(percent)}%`,
+            ].join(" ");
         })
         .join("\n");
 }
 
 function statBadge(label, value) {
-    return `![${label}](https://img.shields.io/badge/${encodeURIComponent(
-        label,
-    )}-${encodeURIComponent(value)}-blue?style=flat)`;
+    const safeLabel = encodeURIComponent(
+        String(label),
+    );
+
+    const safeValue = encodeURIComponent(
+        String(value),
+    );
+
+    return `![${label}](https://img.shields.io/badge/${safeLabel}-${safeValue}-blue?style=flat)`;
 }
 
-function renderListSection(title, items, limit) {
-    if (!items?.length) {
+function renderListSection(
+    title,
+    items,
+    limit = 8,
+) {
+    if (!Array.isArray(items) || items.length === 0) {
         return "";
     }
 
@@ -49,6 +76,37 @@ function renderListSection(title, items, limit) {
     ].join("\n");
 }
 
+function renderBadgeSection(
+    title,
+    items,
+    limit = 6,
+) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return "";
+    }
+
+    const badges = items
+        .slice(0, limit)
+        .map((item) => {
+            const name = item?.name || "Unknown";
+            const percent = formatPercentage(
+                item?.percent || 0,
+            );
+
+            return statBadge(
+                name,
+                `${percent}%`,
+            );
+        })
+        .join(" ");
+
+    return [
+        `### ${title}`,
+        "",
+        badges,
+    ].join("\n");
+}
+
 export function generateWakaSection({
     allTime,
     stats,
@@ -56,21 +114,39 @@ export function generateWakaSection({
 }) {
     const sections = [];
 
-    if (options.showCodeTime && allTime?.text) {
+    /*
+     * Code Time
+     */
+    if (
+        options.showCodeTime &&
+        allTime?.text
+    ) {
         sections.push(
-            statBadge("Code Time", allTime.text),
+            statBadge(
+                "Code Time",
+                allTime.text,
+            ),
         );
     }
 
+    /*
+     * AI Coding Time
+     */
     if (
         options.showAiTime &&
         stats?.ai_coding?.text
     ) {
         sections.push(
-            statBadge("AI Code Time", stats.ai_coding.text),
+            statBadge(
+                "AI Code Time",
+                stats.ai_coding.text,
+            ),
         );
     }
 
+    /*
+     * Languages
+     */
     if (options.showLanguages) {
         const section = renderListSection(
             "💻 Languages",
@@ -83,6 +159,9 @@ export function generateWakaSection({
         }
     }
 
+    /*
+     * Editors
+     */
     if (options.showEditors) {
         const section = renderListSection(
             "🔥 Editors",
@@ -95,6 +174,9 @@ export function generateWakaSection({
         }
     }
 
+    /*
+     * Operating Systems
+     */
     if (options.showOs) {
         const section = renderListSection(
             "🖥️ Operating Systems",
@@ -107,6 +189,9 @@ export function generateWakaSection({
         }
     }
 
+    /*
+     * Projects
+     */
     if (options.showProjects) {
         const section = renderListSection(
             "📦 Projects",
@@ -122,11 +207,20 @@ export function generateWakaSection({
     return sections.join("\n\n");
 }
 
-export function replaceWakaSection(readme, content) {
-    const startIndex = readme.indexOf(START_MARKER);
-    const endIndex = readme.indexOf(END_MARKER);
+export function replaceWakaSection(
+    readme,
+    content,
+) {
+    const startIndex =
+        readme.indexOf(START_MARKER);
 
-    if (startIndex === -1 || endIndex === -1) {
+    const endIndex =
+        readme.indexOf(END_MARKER);
+
+    if (
+        startIndex === -1 ||
+        endIndex === -1
+    ) {
         throw new Error(
             `README must contain ${START_MARKER} and ${END_MARKER}`,
         );
@@ -145,5 +239,11 @@ export function replaceWakaSection(readme, content) {
 
     const after = readme.slice(endIndex);
 
-    return `${before}\n\n${content}\n\n${after}`;
+    return [
+        before,
+        "",
+        content,
+        "",
+        after,
+    ].join("\n");
 }
