@@ -106,98 +106,51 @@ async function run() {
          * These logs intentionally expose only keys/counts.
          * No API key or raw WakaTime response is printed.
          */
+
         core.info(
-            `WakaTime stats keys: ${
-                Object.keys(stats).join(", ")
+            `Languages type: ${typeof stats.languages}`,
+        );
+
+        core.info(
+            `Languages is array: ${Array.isArray(stats.languages)}`,
+        );
+
+        core.info(
+            `Editors type: ${typeof stats.editors}`,
+        );
+
+        core.info(
+            `Editors is array: ${Array.isArray(stats.editors)}`,
+        );
+
+        core.info(
+            `Operating systems type: ${typeof stats.operating_systems}`,
+        );
+
+        core.info(
+            `Operating systems is array: ${Array.isArray(stats.operating_systems)
             }`,
         );
 
         core.info(
-            `Languages: ${
-                Array.isArray(stats.languages)
-                    ? stats.languages.length
-                    : 0
-            }`,
+            `Projects type: ${typeof stats.projects}`,
         );
 
         core.info(
-            `Editors: ${
-                Array.isArray(stats.editors)
-                    ? stats.editors.length
-                    : 0
-            }`,
+            `Projects is array: ${Array.isArray(stats.projects)}`,
         );
 
         core.info(
-            `Operating systems: ${
-                Array.isArray(stats.operating_systems)
-                    ? stats.operating_systems.length
-                    : 0
-            }`,
+            `AI coding type: ${typeof stats.ai_coding}`,
         );
 
         core.info(
-            `Projects: ${
-                Array.isArray(stats.projects)
-                    ? stats.projects.length
-                    : 0
+            `AI coding keys: ${stats.ai_coding &&
+                typeof stats.ai_coding === "object"
+                ? Object.keys(stats.ai_coding).join(", ")
+                : "none"
             }`,
         );
-
-        core.info(
-            `AI coding data: ${
-                stats.ai_coding
-                    ? "available"
-                    : "not available"
-            }`,
-        );
-
-        core.info(
-            `All-time data keys: ${
-                Object.keys(allTime).join(", ")
-            }`,
-        );
-
-        core.info(
-            `Stats range: ${statsRange}`,
-        );
-
-        core.info(
-            `Code time enabled: ${
-                options.showCodeTime
-            }`,
-        );
-
-        core.info(
-            `AI time enabled: ${
-                options.showAiTime
-            }`,
-        );
-
-        core.info(
-            `Languages enabled: ${
-                options.showLanguages
-            }`,
-        );
-
-        core.info(
-            `Editors enabled: ${
-                options.showEditors
-            }`,
-        );
-
-        core.info(
-            `Operating systems enabled: ${
-                options.showOs
-            }`,
-        );
-
-        core.info(
-            `Projects enabled: ${
-                options.showProjects
-            }`,
-        );
-
         const wakaSection = generateWakaSection({
             allTime,
             stats,
