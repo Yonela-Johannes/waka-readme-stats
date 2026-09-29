@@ -21,8 +21,39 @@ function progressBar(percent, length = 24) {
 }
 
 function formatRows(items = [], limit = 8) {
-    return items
-        .slice(0, limit)
+    const parsedLimit =
+        limit === "all" ||
+        limit === 0 ||
+        limit === "0" ||
+        limit === null ||
+        limit === undefined
+            ? 0
+            : Number(limit);
+
+    const list =
+        parsedLimit && parsedLimit > 0
+            ? items.slice(0, parsedLimit)
+            : items;
+
+    if (list.length === 0) {
+        return "";
+    }
+
+    const maxNameLen = Math.max(
+        22,
+        ...list.map(
+            (item) => String(item?.name || "Unknown").length,
+        ),
+    );
+
+    const maxTextLen = Math.max(
+        18,
+        ...list.map(
+            (item) => String(item?.text || "0 secs").length,
+        ),
+    );
+
+    return list
         .map((item) => {
             const name = String(
                 item?.name || "Unknown",
@@ -37,8 +68,8 @@ function formatRows(items = [], limit = 8) {
             );
 
             return [
-                name.padEnd(22),
-                text.padEnd(18),
+                name.padEnd(maxNameLen),
+                text.padEnd(maxTextLen),
                 progressBar(percent),
                 `${formatPercentage(percent)}%`,
             ].join(" ");
@@ -110,7 +141,8 @@ function renderBadgeSection(
 export function generateWakaSection({
     allTime,
     stats,
-    options,
+    githubLanguages,
+    options = {},
 }) {
     const sections = [];
 
@@ -148,14 +180,66 @@ export function generateWakaSection({
      * Languages
      */
     if (options.showLanguages) {
-        const section = renderListSection(
-            "💻 Languages",
-            stats?.languages,
-            8,
-        );
+        const source = (options.languagesSource || "both").toLowerCase();
+        const limit = options.languagesLimit ?? "all";
 
-        if (section) {
-            sections.push(section);
+        const hasWakaLangs =
+            Array.isArray(stats?.languages) &&
+            stats.languages.length > 0;
+
+        const hasGithubLangs =
+            Array.isArray(githubLanguages) &&
+            githubLanguages.length > 0;
+
+        if (source === "both" && hasWakaLangs && hasGithubLangs) {
+            const wakaSection = renderListSection(
+                "💻 Languages (Time Coded)",
+                stats.languages,
+                limit,
+            );
+            const githubSection = renderListSection(
+                "💻 Languages (Code on GitHub)",
+                githubLanguages,
+                limit,
+            );
+
+            if (wakaSection) {
+                sections.push(wakaSection);
+            }
+            if (githubSection) {
+                sections.push(githubSection);
+            }
+        } else if (
+            source === "github" ||
+            (source === "both" && !hasWakaLangs && hasGithubLangs)
+        ) {
+            const langsToRender = hasGithubLangs
+                ? githubLanguages
+                : stats?.languages;
+
+            const section = renderListSection(
+                "💻 Languages",
+                langsToRender,
+                limit,
+            );
+
+            if (section) {
+                sections.push(section);
+            }
+        } else {
+            const langsToRender = hasWakaLangs
+                ? stats?.languages
+                : githubLanguages;
+
+            const section = renderListSection(
+                "💻 Languages",
+                langsToRender,
+                limit,
+            );
+
+            if (section) {
+                sections.push(section);
+            }
         }
     }
 

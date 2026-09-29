@@ -1,6 +1,6 @@
 name: Yonela WakaTime Stats
 
-description: Generate WakaTime statistics and update a GitHub README
+description: Generate WakaTime and GitHub statistics and update a GitHub README
 
 author: Yonela Johannes
 
@@ -11,7 +11,7 @@ branding:
 inputs:
   wakatime_api_key:
     description: WakaTime API key
-    required: true
+    required: false
 
   github_token:
     description: GitHub token used to update the README
@@ -35,6 +35,16 @@ inputs:
     description: Display timezone
     required: false
     default: Africa/Johannesburg
+
+  languages_limit:
+    description: Maximum number of languages to display ("all" or 0 for no limit)
+    required: false
+    default: "all"
+
+  languages_source:
+    description: Language statistics source ("both", "github", or "wakatime")
+    required: false
+    default: "both"
 
   show_code_time:
     description: Show total coding time

@@ -8,6 +8,10 @@ import {
 } from "./wakatime.js";
 
 import {
+    getGitHubLanguages,
+} from "./github.js";
+
+import {
     generateWakaSection,
     replaceWakaSection,
 } from "./readme.js";
@@ -24,10 +28,7 @@ function getBooleanInput(name, fallback = false) {
 
 async function run() {
     try {
-        const apiKey = core.getInput(
-            "wakatime_api_key",
-            { required: true },
-        );
+        const apiKey = core.getInput("wakatime_api_key");
 
         const githubToken = core.getInput(
             "github_token",
@@ -44,6 +45,16 @@ async function run() {
 
         const statsRange =
             core.getInput("stats_range") || "last_7_days";
+
+        const [owner, repo] = repository.split("/");
+
+        if (!owner || !repo) {
+            throw new Error(
+                `Invalid repository: ${repository}`,
+            );
+        }
+
+        const octokit = github.getOctokit(githubToken);
 
         const options = {
             showCodeTime: getBooleanInput(
@@ -75,29 +86,86 @@ async function run() {
                 "show_projects",
                 true,
             ),
+
+            languagesLimit:
+                core.getInput("languages_limit") || "all",
+
+            languagesSource: (
+                core.getInput("languages_source") || "both"
+            ).toLowerCase(),
         };
 
-        core.info("Fetching WakaTime statistics...");
+        let allTime = null;
+        let stats = null;
 
-        const [allTimeResponse, statsResponse] =
-            await Promise.all([
-                getAllTime(apiKey),
-                getStats(apiKey, statsRange),
-            ]);
+        if (apiKey) {
+            try {
+                core.info("Fetching WakaTime statistics...");
 
-        const allTime = allTimeResponse?.data;
-        const stats = statsResponse?.data;
+                const [allTimeResponse, statsResponse] =
+                    await Promise.all([
+                        getAllTime(apiKey).catch((err) => {
+                            core.warning(
+                                `Failed to fetch WakaTime all-time stats: ${err.message}`,
+                            );
+                            return null;
+                        }),
+                        getStats(apiKey, statsRange).catch((err) => {
+                            core.warning(
+                                `Failed to fetch WakaTime range stats: ${err.message}`,
+                            );
+                            return null;
+                        }),
+                    ]);
 
-        if (!allTime) {
-            throw new Error(
-                "WakaTime all-time statistics were not returned.",
+                allTime = allTimeResponse?.data || null;
+                stats = statsResponse?.data || null;
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : String(error);
+
+                core.warning(
+                    `Error fetching WakaTime data: ${message}`,
+                );
+            }
+        } else {
+            core.info(
+                "WakaTime API key not provided; skipping WakaTime statistics.",
             );
         }
 
-        if (!stats) {
-            throw new Error(
-                "WakaTime statistics were not returned.",
-            );
+        let githubLanguages = null;
+
+        if (
+            options.showLanguages &&
+            (options.languagesSource === "github" ||
+                options.languagesSource === "both")
+        ) {
+            try {
+                core.info("Fetching GitHub language statistics...");
+
+                githubLanguages = await getGitHubLanguages(
+                    octokit,
+                    owner,
+                );
+
+                core.info(
+                    `GitHub languages count: ${
+                        githubLanguages?.length ?? 0
+                    }`,
+                );
+            } catch (error) {
+                const message =
+                    error instanceof Error
+                        ? error.message
+                        : String(error);
+
+                core.warning(
+                    `Failed to fetch GitHub language statistics: ${message}`,
+                );
+            }
         }
 
         /*
@@ -108,50 +176,32 @@ async function run() {
          */
 
         core.info(
-            `Languages count: ${
-                stats.languages?.length ?? 0
+            `WakaTime languages count: ${
+                stats?.languages?.length ?? 0
+            }`,
+        );
+
+        core.info(
+            `GitHub languages count: ${
+                githubLanguages?.length ?? 0
             }`,
         );
 
         core.info(
             `Editors count: ${
-                stats.editors?.length ?? 0
+                stats?.editors?.length ?? 0
             }`,
         );
 
         core.info(
             `Operating systems count: ${
-                stats.operating_systems?.length ?? 0
+                stats?.operating_systems?.length ?? 0
             }`,
         );
 
         core.info(
             `Projects count: ${
-                stats.projects?.length ?? 0
-            }`,
-        );
-
-        core.info(
-            `AI additions: ${
-                stats.ai_additions ?? 0
-            }`,
-        );
-
-        core.info(
-            `AI deletions: ${
-                stats.ai_deletions ?? 0
-            }`,
-        );
-
-        core.info(
-            `AI line changes: ${
-                stats.ai_line_changes_total ?? 0
-            }`,
-        );
-
-        core.info(
-            `AI sessions: ${
-                stats.ai_sessions ?? 0
+                stats?.projects?.length ?? 0
             }`,
         );
 
@@ -160,48 +210,20 @@ async function run() {
         );
 
         core.info(
-            `Code time enabled: ${
-                options.showCodeTime
-            }`,
+            `Languages limit: ${options.languagesLimit}`,
         );
 
         core.info(
-            `AI time enabled: ${
-                options.showAiTime
-            }`,
-        );
-
-        core.info(
-            `Languages enabled: ${
-                options.showLanguages
-            }`,
-        );
-
-        core.info(
-            `Editors enabled: ${
-                options.showEditors
-            }`,
-        );
-
-        core.info(
-            `Operating systems enabled: ${
-                options.showOs
-            }`,
-        );
-
-        core.info(
-            `Projects enabled: ${
-                options.showProjects
-            }`,
+            `Languages source: ${options.languagesSource}`,
         );
 
         const hasEnabledSections = Object.values(
             options,
-        ).some(Boolean);
+        ).some((val) => Boolean(val));
 
         if (!hasEnabledSections) {
             core.info(
-                "All WakaTime sections are disabled; skipping README update.",
+                "All sections are disabled; skipping README update.",
             );
 
             return;
@@ -210,12 +232,13 @@ async function run() {
         const wakaSection = generateWakaSection({
             allTime,
             stats,
+            githubLanguages,
             options,
         });
 
         if (!wakaSection) {
             throw new Error(
-                "No WakaTime statistics were available to render.",
+                "No statistics were available to render.",
             );
         }
 
@@ -236,18 +259,6 @@ async function run() {
 
             return;
         }
-
-        const [owner, repo] =
-            repository.split("/");
-
-        if (!owner || !repo) {
-            throw new Error(
-                `Invalid repository: ${repository}`,
-            );
-        }
-
-        const octokit =
-            github.getOctokit(githubToken);
 
         const currentFile =
             await octokit.rest.repos.getContent({
