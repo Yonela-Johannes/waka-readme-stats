@@ -1,21 +1,135 @@
 const START_MARKER = "<!--START_SECTION:waka-->";
 const END_MARKER = "<!--END_SECTION:waka-->";
 
+const FULL_BLOCK = "█";
+const EMPTY_BLOCK = "░";
+
+/*
+ * Block elements used to draw the fractional tip of a bar.
+ * The index is the number of eighths (1/8 ... 7/8) that are filled.
+ */
+const PARTIAL_BLOCKS = [
+    "",
+    "▏",
+    "▎",
+    "▍",
+    "▌",
+    "▋",
+    "▊",
+    "▉",
+];
+
 function formatPercentage(value) {
-    return Number(value || 0).toFixed(2);
+    const numeric = Number(value);
+
+    if (!Number.isFinite(numeric)) {
+        return "0.00";
+    }
+
+    return numeric.toFixed(2);
 }
 
-function progressBar(percent, length = 24) {
-    const numericPercent = Number(percent || 0);
+/*
+ * Code points that render as double-width glyphs (CJK, emoji, ...).
+ */
+function isWideCodePoint(codePoint) {
+    return (
+        (codePoint >= 0x1100 && codePoint <= 0x115f) ||
+        (codePoint >= 0x2e80 && codePoint <= 0x303e) ||
+        (codePoint >= 0x3041 && codePoint <= 0x33ff) ||
+        (codePoint >= 0x3400 && codePoint <= 0x4dbf) ||
+        (codePoint >= 0x4e00 && codePoint <= 0x9fff) ||
+        (codePoint >= 0xa000 && codePoint <= 0xa4cf) ||
+        (codePoint >= 0xac00 && codePoint <= 0xd7a3) ||
+        (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
+        (codePoint >= 0xfe30 && codePoint <= 0xfe6f) ||
+        (codePoint >= 0xff00 && codePoint <= 0xff60) ||
+        (codePoint >= 0xffe0 && codePoint <= 0xffe6) ||
+        (codePoint >= 0x1f300 && codePoint <= 0x1faff) ||
+        (codePoint >= 0x20000 && codePoint <= 0x3fffd)
+    );
+}
 
-    const filled = Math.round(
-        (numericPercent / 100) * length,
+/*
+ * Visual width of a string as rendered in a monospace code block.
+ * Double-width glyphs count as two columns and zero-width characters
+ * (joiners, variation selectors, combining marks) count as none, so
+ * rows stay aligned even when names contain emoji or CJK text.
+ */
+function displayWidth(text) {
+    let width = 0;
+
+    for (const char of String(text ?? "")) {
+        const codePoint = char.codePointAt(0);
+
+        if (
+            codePoint === 0x200d ||
+            codePoint === 0xfe0e ||
+            codePoint === 0xfe0f ||
+            (codePoint >= 0x0300 && codePoint <= 0x036f)
+        ) {
+            continue;
+        }
+
+        width += isWideCodePoint(codePoint) ? 2 : 1;
+    }
+
+    return width;
+}
+
+export function padEndWidth(text, targetWidth) {
+    const value = String(text ?? "");
+    const padding = targetWidth - displayWidth(value);
+
+    return padding > 0
+        ? value + " ".repeat(padding)
+        : value;
+}
+
+/*
+ * Draw a fixed-width horizontal bar for a percentage.
+ *
+ * The filled portion uses eighth-block glyphs so the bar reflects the
+ * value with 1/8-cell precision instead of rounding to whole cells.
+ * Any non-zero value renders at least a sliver, so tiny entries never
+ * look empty beside a real percentage, and the input is clamped to
+ * the 0-100 range so outliers cannot overflow the bar.
+ */
+export function progressBar(percent, length = 24) {
+    const numeric = Number(percent);
+    const safePercent = Number.isFinite(numeric)
+        ? numeric
+        : 0;
+
+    const clamped = Math.min(
+        100,
+        Math.max(0, safePercent),
     );
 
+    const totalEighths = Math.round(
+        (clamped / 100) * length * 8,
+    );
+
+    const fullBlocks = Math.floor(totalEighths / 8);
+    const remainder = totalEighths % 8;
+
+    let bar =
+        FULL_BLOCK.repeat(fullBlocks) +
+        PARTIAL_BLOCKS[remainder];
+
+    let usedWidth =
+        fullBlocks + (remainder > 0 ? 1 : 0);
+
+    // Keep tiny-but-real values visible without growing the bar.
+    if (clamped > 0 && usedWidth === 0) {
+        bar = PARTIAL_BLOCKS[1];
+        usedWidth = 1;
+    }
+
     return (
-        "█".repeat(Math.max(0, filled)) +
-        "░".repeat(
-            Math.max(0, length - filled),
+        bar +
+        EMPTY_BLOCK.repeat(
+            Math.max(0, length - usedWidth),
         )
     );
 }
@@ -42,14 +156,16 @@ function formatRows(items = [], limit = 8) {
     const maxNameLen = Math.max(
         22,
         ...list.map(
-            (item) => String(item?.name || "Unknown").length,
+            (item) =>
+                displayWidth(item?.name || "Unknown"),
         ),
     );
 
     const maxTextLen = Math.max(
         18,
         ...list.map(
-            (item) => String(item?.text || "0 secs").length,
+            (item) =>
+                displayWidth(item?.text || "0 secs"),
         ),
     );
 
@@ -68,8 +184,8 @@ function formatRows(items = [], limit = 8) {
             );
 
             return [
-                name.padEnd(maxNameLen),
-                text.padEnd(maxTextLen),
+                padEndWidth(name, maxNameLen),
+                padEndWidth(text, maxTextLen),
                 progressBar(percent),
                 `${formatPercentage(percent)}%`,
             ].join(" ");
