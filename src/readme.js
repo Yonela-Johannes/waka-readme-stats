@@ -1,13 +1,19 @@
 const START_MARKER = "<!--START_SECTION:waka-->";
 const END_MARKER = "<!--END_SECTION:waka-->";
 
+const IMPORTANT_LANGUAGES = [
+    "TypeScript",
+    "JavaScript",
+    "Python",
+    "C#",
+    "Java",
+    "Ruby",
+    "Handlebars",
+];
+
 const FULL_BLOCK = "█";
 const EMPTY_BLOCK = "░";
 
-/*
- * Block elements used to draw the fractional tip of a bar.
- * The index is the number of eighths (1/8 ... 7/8) that are filled.
- */
 const PARTIAL_BLOCKS = [
     "",
     "▏",
@@ -19,6 +25,30 @@ const PARTIAL_BLOCKS = [
     "▉",
 ];
 
+function filterImportantLanguages(
+    languages = [],
+) {
+    const allowed = new Set(
+        IMPORTANT_LANGUAGES.map((lang) =>
+            lang.toLowerCase(),
+        ),
+    );
+
+    return languages
+        .filter((lang) =>
+            allowed.has(
+                String(
+                    lang?.name || "",
+                ).toLowerCase(),
+            ),
+        )
+        .sort(
+            (a, b) =>
+                Number(b?.percent || 0) -
+                Number(a?.percent || 0),
+        );
+}
+
 function formatPercentage(value) {
     const numeric = Number(value);
 
@@ -29,9 +59,7 @@ function formatPercentage(value) {
     return numeric.toFixed(2);
 }
 
-/*
- * Code points that render as double-width glyphs (CJK, emoji, ...).
- */
+
 function isWideCodePoint(codePoint) {
     return (
         (codePoint >= 0x1100 && codePoint <= 0x115f) ||
@@ -50,12 +78,6 @@ function isWideCodePoint(codePoint) {
     );
 }
 
-/*
- * Visual width of a string as rendered in a monospace code block.
- * Double-width glyphs count as two columns and zero-width characters
- * (joiners, variation selectors, combining marks) count as none, so
- * rows stay aligned even when names contain emoji or CJK text.
- */
 function displayWidth(text) {
     let width = 0;
 
@@ -86,15 +108,7 @@ export function padEndWidth(text, targetWidth) {
         : value;
 }
 
-/*
- * Draw a fixed-width horizontal bar for a percentage.
- *
- * The filled portion uses eighth-block glyphs so the bar reflects the
- * value with 1/8-cell precision instead of rounding to whole cells.
- * Any non-zero value renders at least a sliver, so tiny entries never
- * look empty beside a real percentage, and the input is clamped to
- * the 0-100 range so outliers cannot overflow the bar.
- */
+
 export function progressBar(percent, length = 24) {
     const numeric = Number(percent);
     const safePercent = Number.isFinite(numeric)
@@ -223,36 +237,6 @@ function renderListSection(
     ].join("\n");
 }
 
-function renderBadgeSection(
-    title,
-    items,
-    limit = 6,
-) {
-    if (!Array.isArray(items) || items.length === 0) {
-        return "";
-    }
-
-    const badges = items
-        .slice(0, limit)
-        .map((item) => {
-            const name = item?.name || "Unknown";
-            const percent = formatPercentage(
-                item?.percent || 0,
-            );
-
-            return statBadge(
-                name,
-                `${percent}%`,
-            );
-        })
-        .join(" ");
-
-    return [
-        `### ${title}`,
-        "",
-        badges,
-    ].join("\n");
-}
 
 export function generateWakaSection({
     allTime,
@@ -263,95 +247,81 @@ export function generateWakaSection({
     const sections = [];
 
     /*
-     * Code Time
-     */
-    if (
-        options.showCodeTime &&
-        allTime?.text
-    ) {
-        sections.push(
-            statBadge(
-                "Code Time",
-                allTime.text,
-            ),
-        );
-    }
-
-    /*
-     * AI Coding Time
-     */
-    if (
-        options.showAiTime &&
-        stats?.ai_coding?.text
-    ) {
-        sections.push(
-            statBadge(
-                "AI Code Time",
-                stats.ai_coding.text,
-            ),
-        );
-    }
-
-    /*
      * Languages
      */
     if (options.showLanguages) {
-        const source = (options.languagesSource || "both").toLowerCase();
-        const limit = options.languagesLimit ?? "all";
+        const source = (
+            options.languagesSource || "both"
+        ).toLowerCase();
+
+        const limit =
+            options.languagesLimit ?? "all";
+
+        const filteredWakaLanguages =
+            filterImportantLanguages(
+                stats?.languages || [],
+            );
+
+        const filteredGithubLanguages =
+            filterImportantLanguages(
+                githubLanguages || [],
+            );
 
         const hasWakaLangs =
-            Array.isArray(stats?.languages) &&
-            stats.languages.length > 0;
+            filteredWakaLanguages.length > 0;
 
         const hasGithubLangs =
-            Array.isArray(githubLanguages) &&
-            githubLanguages.length > 0;
+            filteredGithubLanguages.length > 0;
 
-        if (source === "both" && hasWakaLangs && hasGithubLangs) {
-            const wakaSection = renderListSection(
-                "💻 Languages (Time Coded)",
-                stats.languages,
-                limit,
-            );
-            const githubSection = renderListSection(
-                "💻 Languages (Code on GitHub)",
-                githubLanguages,
-                limit,
-            );
+        if (
+            source === "both" &&
+            hasWakaLangs &&
+            hasGithubLangs
+        ) {
+            const wakaSection =
+                renderListSection(
+                    "💻 Languages (Time Coded)",
+                    filteredWakaLanguages,
+                    limit,
+                );
+
+            const githubSection =
+                renderListSection(
+                    "💻 Languages (Code on GitHub)",
+                    filteredGithubLanguages,
+                    limit,
+                );
 
             if (wakaSection) {
                 sections.push(wakaSection);
             }
+
             if (githubSection) {
                 sections.push(githubSection);
             }
         } else if (
             source === "github" ||
-            (source === "both" && !hasWakaLangs && hasGithubLangs)
+            (source === "both" &&
+                !hasWakaLangs &&
+                hasGithubLangs)
         ) {
-            const langsToRender = hasGithubLangs
-                ? githubLanguages
-                : stats?.languages;
-
-            const section = renderListSection(
-                "💻 Languages",
-                langsToRender,
-                limit,
-            );
+            const section =
+                renderListSection(
+                    "💻 Languages",
+                    filteredGithubLanguages,
+                    limit,
+                );
 
             if (section) {
                 sections.push(section);
             }
         } else {
-            const langsToRender = hasWakaLangs
-                ? stats?.languages
-                : githubLanguages;
-
-            const section = renderListSection(
-                "💻 Languages",
-                langsToRender,
-                limit,
-            );
+            const section =
+                renderListSection(
+                    "💻 Languages",
+                    filteredWakaLanguages,
+                    limit,
+                );
 
             if (section) {
                 sections.push(section);
@@ -359,50 +329,6 @@ export function generateWakaSection({
         }
     }
 
-    /*
-     * Editors
-     */
-    if (options.showEditors) {
-        const section = renderListSection(
-            "🔥 Editors",
-            stats?.editors,
-            6,
-        );
-
-        if (section) {
-            sections.push(section);
-        }
-    }
-
-    /*
-     * Operating Systems
-     */
-    if (options.showOs) {
-        const section = renderListSection(
-            "🖥️ Operating Systems",
-            stats?.operating_systems,
-            6,
-        );
-
-        if (section) {
-            sections.push(section);
-        }
-    }
-
-    /*
-     * Projects
-     */
-    if (options.showProjects) {
-        const section = renderListSection(
-            "📦 Projects",
-            stats?.projects,
-            8,
-        );
-
-        if (section) {
-            sections.push(section);
-        }
-    }
 
     return sections.join("\n\n");
 }
